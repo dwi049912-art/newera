@@ -53,9 +53,7 @@ client.once(Events.ClientReady, async () => {
             new ButtonBuilder()
                 .setCustomId("verify")
                 .setLabel("Ambil Role")
-                .setEmoji({
-                    id: "1533526607636205700",
-                    name: "ne"
+                .setEmoji("1533526607636205700")
                 })
                 .setStyle(ButtonStyle.Secondary)
         );
