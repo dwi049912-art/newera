@@ -53,17 +53,16 @@ client.once(Events.ClientReady, async () => {
         const embed = new EmbedBuilder()
             .setColor("#2B2D31")
             .setDescription(
-                "Silahkan ambil role dengan klik tombol di bawah ini. Happy Roleplay 🙂"
+                "Silahkan ambil role dengan klik <:ne:1533526607636205700> di bawah ini. Happy Roleplay"
             );
 
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId("verify")
-                    .setLabel("Ambil Role")
-                    .setEmoji("✅") // Ganti ke ID emoji custom kalau mau
-                    .setStyle(ButtonStyle.Secondary)
-            );
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId("verify")
+                .setLabel("Ambil Role")
+                .setEmoji("1533526607636205700")
+                .setStyle(ButtonStyle.Secondary)
+        );
 
         await channel.send({
             embeds: [embed],
