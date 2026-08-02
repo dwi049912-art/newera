@@ -1,15 +1,12 @@
 const {
     Client,
     GatewayIntentBits,
-    REST,
-    Routes,
-    SlashCommandBuilder,
-    PermissionFlagsBits,
     EmbedBuilder,
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    Events
+    Events,
+    MessageFlags
 } = require("discord.js");
 
 const client = new Client({
@@ -20,38 +17,60 @@ const client = new Client({
 });
 
 const TOKEN = process.env.TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID;
 const ROLE_ID = process.env.ROLE_ID;
-
-// =========================
-// Register Slash Command
-// =========================
-
-const commands = [
-    new SlashCommandBuilder()
-        .setName("setup")
-        .setDescription("Kirim panel verify")
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-        .toJSON()
-];
-
-const rest = new REST({ version: "10" }).setToken(TOKEN);
+const CHANNEL_ID = process.env.CHANNEL_ID;
 
 client.once(Events.ClientReady, async () => {
 
-    console.log(`✅ ${client.user.tag} Online`);
+    console.clear();
+
+    console.log("======================================");
+    console.log(`🤖 Login sebagai ${client.user.tag}`);
+    console.log("🏙️ NewEra Roleplay Bot Online");
+    console.log("======================================");
 
     try {
 
-        await rest.put(
-            Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
-            {
-                body: commands
-            }
+        const channel = await client.channels.fetch(CHANNEL_ID);
+
+        if (!channel) {
+            return console.log("❌ CHANNEL_ID tidak ditemukan.");
+        }
+
+        // Cek apakah panel sudah ada
+        const messages = await channel.messages.fetch({ limit: 10 });
+
+        const alreadyExists = messages.find(msg =>
+            msg.author.id === client.user.id &&
+            msg.components.length > 0
         );
 
-        console.log("✅ Slash Command berhasil diregister.");
+        if (alreadyExists) {
+            console.log("✅ Panel verify sudah ada.");
+            return;
+        }
+
+        const embed = new EmbedBuilder()
+            .setColor("#2B2D31")
+            .setDescription(
+                "Silahkan ambil role dengan klik tombol di bawah ini. Happy Roleplay 🙂"
+            );
+
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId("verify")
+                    .setLabel("Ambil Role")
+                    .setEmoji("✅") // Ganti ke ID emoji custom kalau mau
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+        await channel.send({
+            embeds: [embed],
+            components: [row]
+        });
+
+        console.log("✅ Panel verify berhasil dikirim.");
 
     } catch (err) {
 
@@ -61,84 +80,51 @@ client.once(Events.ClientReady, async () => {
 
 });
 
-// =========================
-// Interaction
-// =========================
-
 client.on(Events.InteractionCreate, async interaction => {
 
-    // Slash Command
-    if (interaction.isChatInputCommand()) {
+    if (!interaction.isButton()) return;
 
-        if (interaction.commandName === "setup") {
+    if (interaction.customId !== "verify") return;
 
-            const embed = new EmbedBuilder()
-                .setColor("#2B2D31")
-                .setDescription(
-                    "Silahkan ambil role dengan react <:verify:1533526607636205700> di bawah ini. Happy Roleplay 🙂"
-                );
+    const role = interaction.guild.roles.cache.get(ROLE_ID);
 
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId("verify")
-                    .setLabel("Ambil Role")
-                    .setEmoji("✅") // Bisa diganti ID emoji custom
-                    .setStyle(ButtonStyle.Secondary)
-            );
+    if (!role) {
 
-            await interaction.reply({
-                embeds: [embed],
-                components: [row]
-            });
-
-        }
+        return interaction.reply({
+            content: "❌ Role tidak ditemukan.",
+            flags: MessageFlags.Ephemeral
+        });
 
     }
 
-    // Button
-    if (interaction.isButton()) {
+    if (interaction.member.roles.cache.has(ROLE_ID)) {
 
-        if (interaction.customId !== "verify") return;
+        return interaction.reply({
+            content: "✅ Kamu sudah memiliki role ini.",
+            flags: MessageFlags.Ephemeral
+        });
 
-        const role = interaction.guild.roles.cache.get(ROLE_ID);
+    }
 
-        if (!role) {
+    try {
 
-            return interaction.reply({
-                content: "❌ Role tidak ditemukan.",
-                ephemeral: true
-            });
+        await interaction.member.roles.add(role);
 
-        }
+        await interaction.reply({
+            content: "🎉 Role berhasil diberikan. Selamat datang!",
+            flags: MessageFlags.Ephemeral
+        });
 
-        if (interaction.member.roles.cache.has(ROLE_ID)) {
+        console.log(`${interaction.user.tag} mengambil role.`);
 
-            return interaction.reply({
-                content: "✅ Kamu sudah memiliki role ini.",
-                ephemeral: true
-            });
+    } catch (err) {
 
-        }
+        console.error(err);
 
-        try {
-
-            await interaction.member.roles.add(role);
-
-            await interaction.reply({
-                content: "🎉 Berhasil! Role telah diberikan.",
-                ephemeral: true
-            });
-
-        } catch (err) {
-
-            console.error(err);
-
-            await interaction.reply({
-                content: "❌ Gagal memberikan role.",
-                ephemeral: true
-            });
-
-        }
+        await interaction.reply({
+            content: "❌ Gagal memberikan role.",
+            flags: MessageFlags.Ephemeral
+        });
 
     }
 
