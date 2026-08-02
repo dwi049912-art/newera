@@ -19,126 +19,129 @@ const client = new Client({
     ]
 });
 
-const command = new SlashCommandBuilder()
-    .setName("setup-whitelist")
-    .setDescription("Membuat panel whitelist.")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const GUILD_ID = process.env.GUILD_ID;
+const ROLE_ID = process.env.ROLE_ID;
 
-client.once(Events.ClientReady, async (c) => {
-    console.clear();
-    console.log("======================================");
-    console.log(`🤖 Login sebagai ${c.user.tag}`);
-    console.log("🏙️ NewEra Roleplay Bot Online");
-    console.log("======================================");
+// =========================
+// Register Slash Command
+// =========================
 
-    const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+const commands = [
+    new SlashCommandBuilder()
+        .setName("setup")
+        .setDescription("Kirim panel verify")
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .toJSON()
+];
+
+const rest = new REST({ version: "10" }).setToken(TOKEN);
+
+client.once(Events.ClientReady, async () => {
+
+    console.log(`✅ ${client.user.tag} Online`);
 
     try {
+
         await rest.put(
-            Routes.applicationGuildCommands(
-                process.env.CLIENT_ID,
-                process.env.GUILD_ID
-            ),
+            Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
             {
-                body: [command.toJSON()]
+                body: commands
             }
         );
 
-        console.log("✅ Slash Command berhasil didaftarkan.");
+        console.log("✅ Slash Command berhasil diregister.");
+
     } catch (err) {
+
         console.error(err);
+
     }
+
 });
+
+// =========================
+// Interaction
+// =========================
 
 client.on(Events.InteractionCreate, async interaction => {
 
     // Slash Command
     if (interaction.isChatInputCommand()) {
 
-        if (interaction.commandName !== "setup-whitelist") return;
+        if (interaction.commandName === "setup") {
 
-        const embed = new EmbedBuilder()
-            .setColor("#57F287")
-            .setTitle("🛡️ NewEra Roleplay")
-            .setDescription(
-`<:${process.env.EMOJI_NAME}:${process.env.EMOJI_ID}> **Selamat datang di NewEra Roleplay!**
+            const embed = new EmbedBuilder()
+                .setColor("#2B2D31")
+                .setDescription(
+                    "Silahkan ambil role dengan react <:verify:1533526607636205700> di bawah ini. Happy Roleplay 🙂"
+                );
 
-Silakan tekan tombol di bawah untuk mengambil **Role Whitelist**.
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("verify")
+                    .setLabel("Ambil Role")
+                    .setEmoji("✅") // Bisa diganti ID emoji custom
+                    .setStyle(ButtonStyle.Secondary)
+            );
 
-Selamat bermain dan semoga pengalaman Roleplay-mu menyenangkan! 🌆`
-            )
-            .setFooter({
-                text: "NewEra Roleplay"
-            })
-            .setTimestamp();
+            await interaction.reply({
+                embeds: [embed],
+                components: [row]
+            });
 
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId("whitelist")
-                .setLabel("Ambil Role Whitelist")
-                .setEmoji({
-                    id: process.env.EMOJI_ID,
-                    name: process.env.EMOJI_NAME
-                })
-                .setStyle(ButtonStyle.Success)
-        );
+        }
 
-        await interaction.channel.send({
-            embeds: [embed],
-            components: [row]
-        });
-
-        return interaction.reply({
-            content: "✅ Panel whitelist berhasil dibuat.",
-            ephemeral: true
-        });
     }
 
     // Button
-    if (!interaction.isButton()) return;
+    if (interaction.isButton()) {
 
-    if (interaction.customId !== "whitelist") return;
+        if (interaction.customId !== "verify") return;
 
-    const role = interaction.guild.roles.cache.get(process.env.ROLE_ID);
+        const role = interaction.guild.roles.cache.get(ROLE_ID);
 
-    if (!role) {
-        return interaction.reply({
-            content: "❌ ROLE_ID tidak ditemukan.",
-            ephemeral: true
-        });
-    }
-
-    try {
-
-        if (interaction.member.roles.cache.has(role.id)) {
-
-            await interaction.member.roles.remove(role);
+        if (!role) {
 
             return interaction.reply({
-                content: "❌ Role **Whitelist** berhasil dihapus.",
+                content: "❌ Role tidak ditemukan.",
                 ephemeral: true
             });
 
         }
 
-        await interaction.member.roles.add(role);
+        if (interaction.member.roles.cache.has(ROLE_ID)) {
 
-        return interaction.reply({
-            content: "✅ Selamat! Role **Whitelist** berhasil diberikan.",
-            ephemeral: true
-        });
+            return interaction.reply({
+                content: "✅ Kamu sudah memiliki role ini.",
+                ephemeral: true
+            });
 
-    } catch (err) {
+        }
 
-        console.error(err);
+        try {
 
-        return interaction.reply({
-            content: "❌ Terjadi kesalahan saat mengubah role.",
-            ephemeral: true
-        });
+            await interaction.member.roles.add(role);
+
+            await interaction.reply({
+                content: "🎉 Berhasil! Role telah diberikan.",
+                ephemeral: true
+            });
+
+        } catch (err) {
+
+            console.error(err);
+
+            await interaction.reply({
+                content: "❌ Gagal memberikan role.",
+                ephemeral: true
+            });
+
+        }
 
     }
 
 });
 
-client.login(process.env.TOKEN);
+client.login(TOKEN);
