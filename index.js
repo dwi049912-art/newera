@@ -25,13 +25,15 @@ const command = new SlashCommandBuilder()
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 client.once(Events.ClientReady, async (c) => {
-
-    console.log(`✅ ${c.user.tag} Online`);
+    console.clear();
+    console.log("======================================");
+    console.log(`🤖 Login sebagai ${c.user.tag}`);
+    console.log("🏙️ NewEra Roleplay Bot Online");
+    console.log("======================================");
 
     const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
     try {
-
         await rest.put(
             Routes.applicationGuildCommands(
                 process.env.CLIENT_ID,
@@ -42,76 +44,57 @@ client.once(Events.ClientReady, async (c) => {
             }
         );
 
-        console.log("✅ Slash Command Loaded");
-
+        console.log("✅ Slash Command berhasil didaftarkan.");
     } catch (err) {
-
-        console.log(err);
-
+        console.error(err);
     }
-
 });
 
 client.on(Events.InteractionCreate, async interaction => {
 
+    // Slash Command
     if (interaction.isChatInputCommand()) {
 
-        if (interaction.commandName === "setup-whitelist") {
+        if (interaction.commandName !== "setup-whitelist") return;
 
-            const embed = new EmbedBuilder()
+        const embed = new EmbedBuilder()
+            .setColor("#57F287")
+            .setTitle("🛡️ NewEra Roleplay")
+            .setDescription(
+`<:${process.env.EMOJI_NAME}:${process.env.EMOJI_ID}> **Selamat datang di NewEra Roleplay!**
 
-                .setColor("#57F287")
+Silakan tekan tombol di bawah untuk mengambil **Role Whitelist**.
 
-                .setTitle("🛡️ NewEra Roleplay")
+Selamat bermain dan semoga pengalaman Roleplay-mu menyenangkan! 🌆`
+            )
+            .setFooter({
+                text: "NewEra Roleplay"
+            })
+            .setTimestamp();
 
-                .setDescription(
-`👋 **Selamat datang di NewEra Roleplay!**
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId("whitelist")
+                .setLabel("Ambil Role Whitelist")
+                .setEmoji({
+                    id: process.env.EMOJI_ID,
+                    name: process.env.EMOJI_NAME
+                })
+                .setStyle(ButtonStyle.Success)
+        );
 
-Silakan tekan tombol **✅** di bawah untuk mengambil **Role Whitelist**.
+        await interaction.channel.send({
+            embeds: [embed],
+            components: [row]
+        });
 
-Selamat bermain dan Happy Roleplay! 🌆`
-                )
-
-                .setFooter({
-                    text: "NewEra Roleplay"
-                });
-
-            const row = new ActionRowBuilder()
-
-                .addComponents(
-
-                    new ButtonBuilder()
-
-                        .setCustomId("whitelist")
-
-                        .setLabel("Ambil Role Whitelist")
-
-                        .setEmoji("✅")
-
-                        .setStyle(ButtonStyle.Success)
-
-                );
-
-            await interaction.channel.send({
-
-                embeds: [embed],
-
-                components: [row]
-
-            });
-
-            return interaction.reply({
-
-                content: "✅ Panel whitelist berhasil dibuat.",
-
-                ephemeral: true
-
-            });
-
-        }
-
+        return interaction.reply({
+            content: "✅ Panel whitelist berhasil dibuat.",
+            ephemeral: true
+        });
     }
 
+    // Button
     if (!interaction.isButton()) return;
 
     if (interaction.customId !== "whitelist") return;
@@ -119,40 +102,42 @@ Selamat bermain dan Happy Roleplay! 🌆`
     const role = interaction.guild.roles.cache.get(process.env.ROLE_ID);
 
     if (!role) {
-
         return interaction.reply({
-
             content: "❌ ROLE_ID tidak ditemukan.",
-
             ephemeral: true
-
         });
-
     }
 
-    if (interaction.member.roles.cache.has(role.id)) {
+    try {
 
-        await interaction.member.roles.remove(role);
+        if (interaction.member.roles.cache.has(role.id)) {
+
+            await interaction.member.roles.remove(role);
+
+            return interaction.reply({
+                content: "❌ Role **Whitelist** berhasil dihapus.",
+                ephemeral: true
+            });
+
+        }
+
+        await interaction.member.roles.add(role);
 
         return interaction.reply({
-
-            content: "❌ Role Whitelist berhasil dihapus.",
-
+            content: "✅ Selamat! Role **Whitelist** berhasil diberikan.",
             ephemeral: true
+        });
 
+    } catch (err) {
+
+        console.error(err);
+
+        return interaction.reply({
+            content: "❌ Terjadi kesalahan saat mengubah role.",
+            ephemeral: true
         });
 
     }
-
-    await interaction.member.roles.add(role);
-
-    interaction.reply({
-
-        content: "✅ Role Whitelist berhasil diberikan. Selamat datang di NewEra Roleplay!",
-
-        ephemeral: true
-
-    });
 
 });
 
