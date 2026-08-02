@@ -1,7 +1,6 @@
 {
-  "name": "verify-role-bot",
+  "name": "newera-whitelist-bot",
   "version": "1.0.0",
-  "description": "Simple Verify Role Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
